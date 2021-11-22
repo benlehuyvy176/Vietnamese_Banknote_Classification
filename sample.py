@@ -59,14 +59,14 @@ elif choice == 'camera':
             captured_image = frame
             break
     cam.release()
-    #img = cv2.imdecode(captured_image,1)
-    #img = cv2.cvtColor(captured_image,cv2.COLOR_BGR2RGB)
+    # img = cv2.imdecode(captured_image,1)
+    # img = cv2.cvtColor(captured_image,cv2.COLOR_BGR2RGB)
     img = cv2.resize(captured_image, (224,224))
     img = np.expand_dims(img, axis=0)
     prediction = model.predict(img)
     index = np.argmax(prediction[0])
     money = money_type[index]
-    #st.image(image_upload)
+    # st.image(captured_image)
     st.write('This is:', money)
     #cv2.destroyAllWindows()
     

@@ -3,89 +3,74 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
+import tensorflow as tf
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing.image import img_to_array, load_img, array_to_img
+from PIL import Image, ImageOps
+menu = ['Read Data', 'Show Webcam']
 
-PATH = 'media/AB_NYC_2019.csv'
+choice = st.sidebar.selectbox('Money Classification', menu)
 
-menu = ['Home', 'Read Data', 'Display Image', 'Show Video', 'Show Webcam', 'Play Audio', 'About Me']
+if choice=='Read Data':
+    st.title('Please upload your money picture!')
+    st.image('media\Vietnames-Dong-500-000-to-10-000.jpg')
 
-choice = st.sidebar.selectbox('What puppy can do?', menu)
+    class_names = ['1000','10000','100000','2000','20000','200000','5000','50000','500000']
+    @st.cache(allow_output_mutation=True)
+    def load_model():
+        model=tf.keras.models.load_model('Model.h5')
+        return model
+    with st.spinner('Model is being loaded..'):
+        model=load_model()
 
+    st.write("""
+            # Money Classification
+            """
+            )
 
-if choice=='Home':
-    st.title("Puppy Wonderland")
-    st.header("My First Web App!")
-
-    st.write("")
-    st.write("My puppy can do anything!")
-
-    st.image('media/isle_of_dog.gif',
-            caption="My lovely black puppy",
-            use_column_width='auto')
-
-    col1, col2, col3 = st.columns(3)
-
-    # NAME
-    with col1:
-        name = st.text_input("Enter your puppy name:")
-        if name!="":
-            st.write(name, "is a cute name!")
-
-    # AGE
-    with col2:
-        age = st.slider("Choose your puppy age", min_value=0, max_value=20)
-        st.write('Your puppy is ', age, 'years old')
-
-    # FOOD
-    with col3:
-        food = st.multiselect('What does it eat?', ['Bone', 'Sausage', 'Veggie'])
-        if food==['Bone']:
-            st.write("He must bark first!")
-        elif food==['Sausage']:
-            st.write('Quite expensive, but...OK!')
-        else:
-            st.write('Ohno.... Are you sure?')
-
-elif choice=='Read Data':
-    st.title('Hot Dog Summer!')
-    st.image('media/dog-beach-lifesaver.png')
-
-    @st.cache()
-    def load_data(path):
-        return pd.read_csv(path)
-
-    df = load_data(PATH) 
-    st.dataframe(df)
-
-    figure, ax = plt.subplots()
-    df.groupby('neighbourhood_group')['price'].mean().plot(kind='barh', ax=ax)
-    st.pyplot(figure)
-    st.write('Amazing chart!')
-
-    price = st.slider('Choose your price', min_value=10, max_value=500)
-    filter = df[df['price']<price]
-    st.map(filter[['latitude', 'longitude']])
-
-elif choice=='Display Image':
-    st.title('My puppy can show images')
-    photo_uploaded = st.file_uploader('Upload your best photo here', ['png', 'jpeg', 'jpg'])
-    if photo_uploaded!=None:
-        image_np = np.asarray(bytearray(photo_uploaded.read()), dtype=np.uint8)
-        img = cv2.imdecode(image_np, 1)
-        st.image(img, channels='BGR')
-
-        st.write(photo_uploaded.size)
-        st.write(photo_uploaded.type)
-
-elif choice=='Show Video':
-    st.title('Show your puppy best videos here!')
-    st.warning('Sounds available on local computer ONLY')
-    video_uploaded = st.file_uploader('Upload please', type=['mp4'])
-    if video_uploaded!=None:
-        st.video(video_uploaded)
+    filename = st.file_uploader("Please upload an brain scan file", type=["jpg", "png"])
+    st.set_option('deprecation.showfileUploaderEncoding', False)
+    def import_and_predict(image_data, model):
+        size = (224,224)    
+        image = ImageOps.fit(image_data, size, Image.ANTIALIAS)
+        image = np.asarray(image)
+        img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        #img_resize = (cv2.resize(img, dsize=(75, 75),    interpolation=cv2.INTER_CUBIC))/255.
+        
+        img_reshape = img[np.newaxis,...]
+    
+        prediction = model.predict(img_reshape)
+        
+        return prediction
+    if filename is None:
+        st.text("Please upload an image file")
+    else:
+        image = Image.open(filename)
+        st.image(image, use_column_width=True)
+        predictions = import_and_predict(image, model)
+        score = tf.nn.softmax(predictions[0])
+        st.write(predictions)
+        st.write(score)
+        print(
+        "This image most likely belongs to {} with a {:.2f} percent confidence."
+        .format(class_names[np.argmax(score)], 100 * np.max(score))
+    )
 
 elif choice=='Show Webcam':
     st.title('Open your webcam')
     st.warning('Webcam show on local computer ONLY')
+    class_names = ['1000','10000','100000','2000','20000','200000','5000','50000','500000']
+    @st.cache(allow_output_mutation=True)
+    def load_model():
+        model=tf.keras.models.load_model('Model.h5')
+        return model
+    with st.spinner('Model is being loaded..'):
+        model=load_model()
+
+    st.write("""
+            # Money Classification
+            """
+            )
     show = st.checkbox('Show!')
     FRAME_WINDOW = st.image([])
     camera = cv2.VideoCapture(0) # device 1/2
@@ -96,15 +81,59 @@ elif choice=='Show Webcam':
         FRAME_WINDOW.image(frame)
     else:
         camera.release()
+    
+    while True:
+        try:
+            check, frame = webcam.read()
+            print(check) #prints true as long as the webcam is running
+            print(frame) #prints matrix values of each framecd 
+            cv2.imshow("Capturing", frame)
+            key = cv2.waitKey(1)
+            if key == ord('s'): 
+                cv2.imwrite(filename='saved_img.jpg', img=frame)
+                webcam.release()
+                img_new = cv2.imread('saved_img.jpg', cv2.IMREAD_GRAYSCALE)
+                img_new = cv2.imshow("Captured Image", img_new)
+                cv2.waitKey(1650)
+                cv2.destroyAllWindows()
+                print("Processing image...")
+                img_ = cv2.imread('saved_img.jpg', cv2.IMREAD_ANYCOLOR)
+                print("Converting RGB image to grayscale...")
+                gray = cv2.cvtColor(img_, cv2.COLOR_BGR2GRAY)
+                print("Converted RGB image to grayscale...")
+                # print("Resizing image to 28x28 scale...")
+                # img_ = cv2.resize(gray,(28,28))
+                # print("Resized...")
+                img_resized = cv2.imwrite(filename='saved_img-final.jpg', img=img_)
+                print("Image saved!")
+            
+                break
+            elif key == ord('q'):
+                print("Turning off camera.")
+                webcam.release()
+                print("Camera off.")
+                print("Program ended.")
+                cv2.destroyAllWindows()
+                break
+        
+        except(KeyboardInterrupt):
+            print("Turning off camera.")
+            webcam.release()
+            print("Camera off.")
+            print("Program ended.")
+            cv2.destroyAllWindows()
+            break
 
-elif choice=='Play Audio':
-    st.write("Puppy can play music!")
-    audio_uploaded = st.file_uploader('Upload your fav song')
-    if audio_uploaded!=None:
-        audio = audio_uploaded.read()
-        st.audio(audio, format='audio/mp3')
-
-elif choice=='About Me':
-    st.success('An awesome guy!')
-    st.image('media/cool.gif')
-    st.balloons()
+        if filename is None:
+            st.text("Please take a picture")
+        else:
+            image = Image.open(filename)
+            st.image(image, use_column_width=True)
+            predictions = import_and_predict(image, model)
+            score = tf.nn.softmax(predictions[0])
+            st.write(predictions)
+            st.write(score)
+            print(
+            "This image most likely belongs to {} with a {:.2f} percent confidence."
+            .format(class_names[np.argmax(score)], 100 * np.max(score))
+        )
